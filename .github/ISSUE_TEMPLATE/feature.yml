@@ -1,0 +1,23 @@
+name: Funcionalidad
+about: Planear una nueva funcionalidad de FitPlan
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      description: ¿Qué necesita el usuario y por qué?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Escribe resultados verificables.
+      placeholder: |
+        - Dado...
+        - Cuando...
+        - Entonces...
+    validations:
+      required: true

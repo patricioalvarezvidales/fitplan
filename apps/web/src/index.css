@@ -1,0 +1,13 @@
+html {
+  background: #0d0d0d;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #00e5cc;
+  outline-offset: 3px;
+}
