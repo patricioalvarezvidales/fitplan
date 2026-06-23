@@ -118,6 +118,9 @@ class Exercise(Base):
     video_url: Mapped[str] = mapped_column(String(500), default="")
     image_url: Mapped[str] = mapped_column(String(500), default="")
     instructions: Mapped[str] = mapped_column(Text, default="")
+    default_weight_kg: Mapped[float] = mapped_column(Float, default=0)
+    progression_step_kg: Mapped[float] = mapped_column(Float, default=2.5)
+    load_type: Mapped[str] = mapped_column(String(30), default="external")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -165,6 +168,7 @@ class SessionExercise(Base):
     repetitions: Mapped[str] = mapped_column(String(30))
     rest_seconds: Mapped[int] = mapped_column(Integer)
     target_rpe: Mapped[float] = mapped_column(Float)
+    recommended_weight_kg: Mapped[float] = mapped_column(Float, default=0)
     notes: Mapped[str] = mapped_column(Text, default="")
 
     exercise: Mapped[Exercise] = relationship()
@@ -188,3 +192,20 @@ class WorkoutLog(Base):
 
     user: Mapped[User] = relationship(back_populates="logs")
     session: Mapped[PlanSession] = relationship()
+    exercise_logs: Mapped[list[ExerciseLog]] = relationship(cascade="all, delete-orphan")
+
+
+class ExerciseLog(Base):
+    __tablename__ = "exercise_logs"
+    __table_args__ = (UniqueConstraint("workout_log_id", "session_exercise_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    workout_log_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("workout_logs.id", ondelete="CASCADE"), index=True)
+    session_exercise_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("session_exercises.id"), index=True)
+    exercise_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("exercises.id"), index=True)
+    recommended_weight_kg: Mapped[float] = mapped_column(Float, default=0)
+    actual_weight_kg: Mapped[float] = mapped_column(Float, default=0)
+    completed_sets: Mapped[int] = mapped_column(Integer)
+    completed_repetitions: Mapped[str] = mapped_column(String(30))
+
+    exercise: Mapped[Exercise] = relationship()

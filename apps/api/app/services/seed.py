@@ -13,6 +13,23 @@ RESTRICTIONS = [
     ("hombro", "hombros", "Evitar movimientos por encima de la cabeza con dolor."),
     ("muñeca", "muñecas", "Evitar apoyo prolongado o extensión dolorosa."),
 ]
+LOAD_DEFAULTS = {
+    "Sentadilla al aire": (0, 0, "bodyweight"),
+    "Puente de glúteo": (0, 0, "bodyweight"),
+    "Flexiones inclinadas": (0, 0, "bodyweight"),
+    "Remo con mancuerna": (10, 2.5, "external"),
+    "Press de hombro con mancuernas": (8, 2, "external"),
+    "Peso muerto rumano con mancuernas": (16, 2.5, "external"),
+    "Zancada asistida": (0, 0, "bodyweight"),
+    "Plancha de antebrazos": (0, 0, "bodyweight"),
+    "Dead bug": (0, 0, "bodyweight"),
+    "Mountain climbers": (0, 0, "bodyweight"),
+    "Marcha rápida": (0, 0, "cardio"),
+    "Caminata en caminadora": (0, 0, "cardio"),
+    "Curl de bíceps": (6, 2, "external"),
+    "Remo con banda": (0, 0, "band"),
+}
+
 EXERCISES = [
     ("Sentadilla al aire", "Piernas y glúteos con peso corporal.", "piernas", "sentadilla", "principiante", "perdida_peso,ganancia_muscular,resistencia", "ninguno", "rodilla", "https://www.youtube.com/watch?v=aclHkVaku9U", "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=900&q=80", "Pies al ancho de hombros, cadera atrás y pecho alto."),
     ("Puente de glúteo", "Fortalece glúteos y cadena posterior.", "gluteos", "bisagra", "principiante", "ganancia_muscular,resistencia", "ninguno", "", "https://www.youtube.com/watch?v=wPM8icPu6H8", "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80", "Empuja con los talones y contrae glúteos arriba."),
@@ -38,9 +55,14 @@ def seed_catalog(db: Session) -> None:
         db.add_all([Restriction(name=n, body_area=a, description=d) for n, a, d in RESTRICTIONS])
     if db.scalar(select(func.count(Exercise.id))) == 0:
         db.add_all([
-            Exercise(name=n, description=d, primary_muscle=m, movement_pattern=p,
-                     difficulty_level=level, goal_tags=g, equipment_name=e, restriction_tags=r,
-                     video_url=v, image_url=i, instructions=ins)
+            Exercise(
+                name=n, description=d, primary_muscle=m, movement_pattern=p,
+                difficulty_level=level, goal_tags=g, equipment_name=e, restriction_tags=r,
+                video_url=v, image_url=i, instructions=ins,
+                default_weight_kg=LOAD_DEFAULTS.get(n, (0, 2.5, "external"))[0],
+                progression_step_kg=LOAD_DEFAULTS.get(n, (0, 2.5, "external"))[1],
+                load_type=LOAD_DEFAULTS.get(n, (0, 2.5, "external"))[2],
+            )
             for n, d, m, p, level, g, e, r, v, i, ins in EXERCISES
         ])
     db.commit()

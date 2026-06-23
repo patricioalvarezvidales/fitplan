@@ -5,7 +5,15 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Exercise, PlanSession, SessionExercise, User, WorkoutLog, WorkoutPlan
+from app.models import (
+    Exercise,
+    ExerciseLog,
+    PlanSession,
+    SessionExercise,
+    User,
+    WorkoutLog,
+    WorkoutPlan,
+)
 
 FOCUS_BY_DAYS = {
     2: ["cuerpo completo A", "cuerpo completo B"],
@@ -43,6 +51,39 @@ def _adaptation_factor(db: Session, user_id) -> tuple[float, str]:
     return 1.0, "adapted: mantenimiento por respuesta estable"
 
 
+def _round_to_step(value: float, step: float) -> float:
+    if step <= 0:
+        return round(value, 1)
+    return round(round(value / step) * step, 1)
+
+
+def _recommended_weight(db: Session, user: User, exercise: Exercise) -> float:
+    if exercise.load_type in {"bodyweight", "cardio"}:
+        return 0
+
+    previous = db.execute(
+        select(ExerciseLog, WorkoutLog)
+        .join(WorkoutLog, WorkoutLog.id == ExerciseLog.workout_log_id)
+        .where(WorkoutLog.user_id == user.id, ExerciseLog.exercise_id == exercise.id)
+        .order_by(WorkoutLog.completed_at.desc())
+        .limit(1)
+    ).first()
+
+    if not previous:
+        multiplier = {"principiante": 0.8, "intermedio": 1.0, "avanzado": 1.2}.get(
+            user.profile.experience_level, 1.0
+        )
+        return _round_to_step(exercise.default_weight_kg * multiplier, exercise.progression_step_kg)
+
+    exercise_log, workout_log = previous
+    base = exercise_log.actual_weight_kg or exercise_log.recommended_weight_kg or exercise.default_weight_kg
+    if workout_log.pain_reported or workout_log.difficulty >= 9:
+        base -= exercise.progression_step_kg
+    elif workout_log.difficulty <= 6 and workout_log.energy_level >= 7:
+        base += exercise.progression_step_kg
+    return max(0, _round_to_step(base, exercise.progression_step_kg))
+
+
 def generate_plan(db: Session, user: User) -> WorkoutPlan:
     profile = user.profile
     if not profile:
@@ -66,17 +107,20 @@ def generate_plan(db: Session, user: User) -> WorkoutPlan:
         eligible.append(exercise)
 
     if len(eligible) < 4:
-        eligible = [e for e in exercises if e.equipment_name == "ninguno" and not (restrictions & set(e.restriction_tags.split(",")))]
+        eligible = [
+            e for e in exercises
+            if e.equipment_name == "ninguno" and not (restrictions & set(e.restriction_tags.split(",")))
+        ]
     if not eligible:
         raise ValueError("No hay ejercicios compatibles con tus restricciones actuales")
 
     previous = db.scalars(select(WorkoutPlan).where(WorkoutPlan.user_id == user.id)).all()
-    for plan in previous:
-        plan.status = "archived"
+    for old_plan in previous:
+        old_plan.status = "archived"
 
     factor, reason = _adaptation_factor(db, user.id)
     version = len(previous) + 1
-    start = date.today()
+    start = date.today() if not previous else max(plan.end_date for plan in previous) + timedelta(days=1)
     end = start + timedelta(days=6)
     plan = WorkoutPlan(
         user_id=user.id,
@@ -126,6 +170,7 @@ def generate_plan(db: Session, user: User) -> WorkoutPlan:
                 repetitions="30-45 s" if exercise.movement_pattern == "cardio" else reps,
                 rest_seconds=rest,
                 target_rpe=rpe,
+                recommended_weight_kg=_recommended_weight(db, user, exercise),
                 notes="Reduce el rango si aparece dolor; detén la sesión ante una molestia aguda.",
             ))
 
@@ -133,10 +178,25 @@ def generate_plan(db: Session, user: User) -> WorkoutPlan:
     return get_active_plan(db, user.id)
 
 
+def _plan_query():
+    return select(WorkoutPlan).options(
+        selectinload(WorkoutPlan.sessions)
+        .selectinload(PlanSession.exercises)
+        .selectinload(SessionExercise.exercise)
+    )
+
+
 def get_active_plan(db: Session, user_id) -> WorkoutPlan | None:
     return db.scalar(
-        select(WorkoutPlan)
+        _plan_query()
         .where(WorkoutPlan.user_id == user_id, WorkoutPlan.status == "active")
-        .options(selectinload(WorkoutPlan.sessions).selectinload(PlanSession.exercises).selectinload(SessionExercise.exercise))
-        .order_by(WorkoutPlan.created_at.desc())
+        .order_by(WorkoutPlan.version.desc())
     )
+
+
+def get_plan(db: Session, user_id, plan_id) -> WorkoutPlan | None:
+    return db.scalar(_plan_query().where(WorkoutPlan.user_id == user_id, WorkoutPlan.id == plan_id))
+
+
+def get_all_plans(db: Session, user_id) -> list[WorkoutPlan]:
+    return list(db.scalars(_plan_query().where(WorkoutPlan.user_id == user_id).order_by(WorkoutPlan.version.asc())).all())

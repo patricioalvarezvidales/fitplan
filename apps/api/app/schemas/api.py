@@ -75,6 +75,7 @@ class ExerciseOut(BaseModel):
     video_url: str
     image_url: str
     instructions: str
+    load_type: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,6 +87,7 @@ class SessionExerciseOut(BaseModel):
     repetitions: str
     rest_seconds: int
     target_rpe: float
+    recommended_weight_kg: float
     notes: str
     exercise: ExerciseOut
 
@@ -119,6 +121,13 @@ class PlanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExerciseCompletionInput(BaseModel):
+    session_exercise_id: uuid.UUID
+    actual_weight_kg: float = Field(ge=0, le=1000)
+    completed_sets: int = Field(ge=0, le=20)
+    completed_repetitions: str = Field(min_length=1, max_length=30)
+
+
 class CompleteWorkoutRequest(BaseModel):
     actual_minutes: int = Field(ge=5, le=240)
     difficulty: int = Field(ge=1, le=10)
@@ -127,6 +136,15 @@ class CompleteWorkoutRequest(BaseModel):
     pain_reported: bool = False
     pain_area: str = Field(default="", max_length=80)
     comments: str = Field(default="", max_length=1000)
+    exercises: list[ExerciseCompletionInput]
+
+
+class ExerciseHistoryOut(BaseModel):
+    exercise_name: str
+    recommended_weight_kg: float
+    actual_weight_kg: float
+    completed_sets: int
+    completed_repetitions: str
 
 
 class HistoryOut(BaseModel):
@@ -141,6 +159,7 @@ class HistoryOut(BaseModel):
     comments: str
     session_name: str
     plan_name: str
+    exercises: list[ExerciseHistoryOut]
 
 
 class MeOut(BaseModel):

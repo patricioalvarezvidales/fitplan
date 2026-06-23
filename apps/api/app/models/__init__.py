@@ -1,6 +1,7 @@
 from app.models.entities import (
     Equipment,
     Exercise,
+    ExerciseLog,
     PlanSession,
     Restriction,
     SessionExercise,
@@ -13,6 +14,6 @@ from app.models.entities import (
 )
 
 __all__ = [
-    "Equipment", "Exercise", "PlanSession", "Restriction", "SessionExercise",
+    "Equipment", "Exercise", "ExerciseLog", "PlanSession", "Restriction", "SessionExercise",
     "User", "UserEquipment", "UserProfile", "UserRestriction", "WorkoutLog", "WorkoutPlan",
 ]
