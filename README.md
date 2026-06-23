@@ -1,59 +1,45 @@
 # FitPlan
 
-Prototipo web que genera un plan semanal de entrenamiento y adapta cada sesión usando disponibilidad, equipo, progreso y retroalimentación del usuario.
+MVP funcional para generar y adaptar planes semanales de entrenamiento mediante una arquitectura React + FastAPI + PostgreSQL y prácticas DevOps.
 
-## Stack
+## Funciones implementadas
 
-- React + TypeScript + Vite
-- FastAPI + Python
-- PostgreSQL
-- SQLAlchemy + Alembic
-- Docker Compose
-- GitHub Actions
+- Registro, confirmación de correo en modo desarrollo, inicio y cierre de sesión con JWT.
+- Perfil físico editable con validación de edad, peso, altura, nivel, objetivo y disponibilidad.
+- Selección de equipo y restricciones físicas.
+- Generación automática de una semana con series, repeticiones, descansos y RPE.
+- Filtrado de ejercicios incompatibles con equipo o restricciones.
+- Sesión recomendada del día con video o imagen de respaldo.
+- Registro irreversible de sesión completada.
+- Retroalimentación de dificultad, energía, satisfacción y dolor.
+- Historial con filtros semanales y mensuales.
+- Regeneración adaptativa: progresión, mantenimiento o reducción de volumen.
 
-## Inicio rápido en Ubuntu WSL
-
-Guarda el proyecto dentro del sistema Linux, por ejemplo:
+## Ejecutar con Docker
 
 ```bash
-mkdir -p ~/projects
-cd ~/projects
-# Descomprime o mueve aquí la carpeta fitplan
-cd fitplan
 cp .env.example .env
 docker compose up --build
 ```
 
-Servicios:
+Aplicación: `http://localhost:5173`
+Swagger: `http://localhost:8000/docs`
 
-- Frontend: http://localhost:5173
-- API: http://localhost:8000
-- Swagger: http://localhost:8000/docs
-- PostgreSQL: localhost:5432
+## Flujo de prueba
 
-Detener servicios:
+1. Crear una cuenta. En este MVP la interfaz consume el token de confirmación automáticamente; en producción debe enviarse por correo con un proveedor SMTP.
+2. Completar el perfil, equipo y restricciones.
+3. Generar la rutina semanal.
+4. Abrir una sesión, revisar ejercicios y registrarla como completada.
+5. Consultar el historial o regenerar para aplicar la adaptación.
+
+## Calidad
 
 ```bash
-docker compose down
+cd apps/api && pip install -e ".[dev]" && ruff check app tests && pytest
+cd apps/web && npm ci && npm run lint && npm run build
 ```
 
-## Flujo Git
+## Nota de seguridad
 
-- `main`: versión estable y demostrable.
-- `develop`: integración y staging.
-- `feature/*`, `fix/*`, `docs/*`: ramas temporales.
-
-Consulta `docs/github-setup.md` y `docs/branching-strategy.md`.
-
-## Estado actual
-
-- [x] Estructura monorepo.
-- [x] Docker Compose con frontend, API y PostgreSQL.
-- [x] Health checks.
-- [x] CI para lint, pruebas, build y contenedores.
-- [x] Página inicial de FitPlan.
-- [ ] Diseño de base de datos.
-- [ ] Autenticación y perfil.
-- [ ] Catálogo de ejercicios.
-- [ ] Motor de rutinas.
-- [ ] Seguimiento y adaptación.
+FitPlan no sustituye una evaluación médica o profesional. El sistema evita ejercicios etiquetados como incompatibles, pero el usuario debe detenerse ante dolor agudo.
