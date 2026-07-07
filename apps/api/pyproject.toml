@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
   "alembic==1.18.4",
   "fastapi[standard]==0.138.0",
+  "email-validator==2.3.0",
   "psycopg[binary]==3.3.4",
   "pydantic-settings==2.14.2",
   "PyJWT==2.13.0",
@@ -39,3 +40,4 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008", "E501"]
