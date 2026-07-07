@@ -44,7 +44,7 @@ EXERCISES = [
     ("Marcha rápida", "Cardio sin equipo y bajo impacto.", "cardio", "cardio", "principiante", "perdida_peso,resistencia", "ninguno", "", "", "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=80", "Mantén ritmo constante y balancea los brazos."),
     ("Caminata en caminadora", "Cardio progresivo y medible.", "cardio", "cardio", "principiante", "perdida_peso,resistencia", "caminadora", "", "", "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=900&q=80", "Usa una velocidad sostenible y postura erguida."),
     ("Curl de bíceps", "Aislamiento de bíceps.", "biceps", "traccion", "principiante", "ganancia_muscular", "mancuernas", "", "https://www.youtube.com/watch?v=ykJmrZ5v0Oo", "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=900&q=80", "Codos pegados al cuerpo y sin impulso."),
-    ("Remo con banda", "Tracción horizontal con banda.", "espalda", "traccion", "principiante", "ganancia_muscular,resistencia", "bandas", "", "", "https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=900&q=80", "Junta escápulas y controla el regreso."),
+    ("Remo con banda", "Tracción horizontal con banda.", "espalda", "traccion", "principiante", "ganancia_muscular,resistencia", "bandas", "", "https://www.youtube.com/watch?v=LSkyinhmA8k", "https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=900&q=80", "Junta escápulas y controla el regreso."),
 ]
 
 
