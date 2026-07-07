@@ -8,14 +8,16 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY app ./app
+COPY alembic.ini ./
+COPY alembic ./alembic
 RUN pip install --upgrade pip && pip install .
 
 FROM base AS development
 COPY tests ./tests
 RUN pip install -e ".[dev]"
 EXPOSE 8000
-CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && exec fastapi dev app/main.py --host 0.0.0.0 --port 8000"]
 
 FROM base AS production
 EXPOSE 8000
-CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && exec fastapi run app/main.py --host 0.0.0.0 --port 8000"]
