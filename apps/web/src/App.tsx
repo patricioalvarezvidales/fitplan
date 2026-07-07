@@ -209,7 +209,256 @@ function WeekNavigator({ plans, currentIndex, onSelect }: { plans: Plan[]; curre
 
 function SessionModal({ session, onClose, onComplete }: { session: PlanSession; onClose: () => void; onComplete: (event: FormEvent<HTMLFormElement>) => void }) {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
-  return <div className="modal-backdrop"><section className="modal"><button className="close" onClick={onClose}>×</button><div className="session-modal-head"><div><p className="eyebrow">{session.completed ? 'SESIÓN COMPLETADA' : 'ENTRENAMIENTO GUIADO'}</p><h1>{session.name}</h1><p>{session.estimated_minutes} min · objetivo RPE {session.exercises[0]?.target_rpe ?? 7}</p></div><label className="unit-switch">Unidad<select name="weight_unit" value={weightUnit} onChange={(event) => setWeightUnit(event.target.value as WeightUnit)} disabled={session.completed}><option value="kg">kg</option><option value="lb">lb</option></select></label></div><form onSubmit={onComplete}><input type="hidden" name="weight_unit" value={weightUnit} /><div className="exercise-list">{session.exercises.map((item) => <article key={item.id}><div className="media">{item.exercise.video_url ? <iframe src={item.exercise.video_url.replace('watch?v=', 'embed/')} title={item.exercise.name} allowFullScreen /> : <img src={item.exercise.image_url} alt={item.exercise.name} />}</div><div className="exercise-content"><span>#{item.exercise_order} · {item.exercise.primary_muscle}</span><h2>{item.exercise.name}</h2><p>{item.exercise.description}</p><b>{item.sets} series · {item.repetitions} · descanso {item.rest_seconds}s</b>{item.exercise.load_type === 'external' && <div className="load-box"><span>Recomendado: <strong>{toDisplayWeight(item.recommended_weight_kg, weightUnit)} {weightUnit}</strong></span><label>Peso usado ({weightUnit})<input key={`${item.id}-${weightUnit}`} name={`weight_${item.id}`} type="number" min="0" max={weightUnit === 'kg' ? 1000 : 2205} step={weightUnit === 'kg' ? '0.5' : '1'} defaultValue={toDisplayWeight(item.recommended_weight_kg, weightUnit)} disabled={session.completed} /></label></div>}<div className="set-log"><label>Series realizadas<input name={`sets_${item.id}`} type="number" min="0" max="20" defaultValue={item.sets} disabled={session.completed} /></label><label>Repeticiones<input name={`reps_${item.id}`} defaultValue={item.repetitions} disabled={session.completed} /></label></div><small>{item.exercise.instructions}</small></div></article>)}</div>{!session.completed && <section className="feedback"><h2>Finalizar y registrar</h2><div className="form-grid"><label>Minutos reales<input name="actual_minutes" type="number" min="5" max="240" defaultValue={session.estimated_minutes} required /></label><label>Dificultad (1-10)<input name="difficulty" type="number" min="1" max="10" defaultValue="7" required /></label><label>Energía (1-10)<input name="energy_level" type="number" min="1" max="10" defaultValue="7" required /></label><label>Satisfacción (1-10)<input name="satisfaction" type="number" min="1" max="10" defaultValue="8" required /></label></div><label className="check"><input name="pain_reported" type="checkbox" /> Sentí dolor o molestia</label><label>Área de molestia<input name="pain_area" placeholder="Ej. rodilla derecha" /></label><label>Comentarios<textarea name="comments" rows={3} placeholder="¿Qué fue fácil, difícil o incómodo?" /></label><button className="primary-action">Marcar entrenamiento como completado</button></section>}</form></section></div>
+  const [weights, setWeights] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      session.exercises
+        .filter((item) => item.exercise.load_type === 'external')
+        .map((item) => [
+          item.id,
+          String(toDisplayWeight(item.recommended_weight_kg, 'kg')),
+        ]),
+    ),
+  )
+
+  const changeWeightUnit = (nextUnit: WeightUnit) => {
+    if (nextUnit === weightUnit) return
+
+    setWeights((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([id, value]) => {
+          if (value.trim() === '') return [id, value]
+
+          const numericValue = Number(value)
+          if (!Number.isFinite(numericValue)) return [id, value]
+
+          const kilograms = toKilograms(numericValue, weightUnit)
+          return [
+            id,
+            String(toDisplayWeight(kilograms, nextUnit)),
+          ]
+        }),
+      ),
+    )
+
+    setWeightUnit(nextUnit)
+  }
+
+  const updateWeight = (id: string, value: string) => {
+    setWeights((current) => ({
+      ...current,
+      [id]: value,
+    }))
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <section className="modal">
+        <button className="close" type="button" onClick={onClose}>×</button>
+
+        <div className="session-modal-head">
+          <div>
+            <p className="eyebrow">
+              {session.completed ? 'SESIÓN COMPLETADA' : 'ENTRENAMIENTO GUIADO'}
+            </p>
+            <h1>{session.name}</h1>
+            <p>
+              {session.estimated_minutes} min · objetivo RPE{' '}
+              {session.exercises[0]?.target_rpe ?? 7}
+            </p>
+          </div>
+
+          <label className="unit-switch">
+            Unidad
+            <select
+              value={weightUnit}
+              onChange={(event) =>
+                changeWeightUnit(event.target.value as WeightUnit)
+              }
+              disabled={session.completed}
+            >
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </label>
+        </div>
+
+        <form onSubmit={onComplete}>
+          <input type="hidden" name="weight_unit" value={weightUnit} />
+
+          <div className="exercise-list">
+            {session.exercises.map((item) => (
+              <article key={item.id}>
+                <div className="media">
+                  {item.exercise.video_url ? (
+                    <iframe
+                      src={item.exercise.video_url.replace('watch?v=', 'embed/')}
+                      title={item.exercise.name}
+                      allowFullScreen
+                    />
+                  ) : (
+                    <img
+                      src={item.exercise.image_url}
+                      alt={item.exercise.name}
+                    />
+                  )}
+                </div>
+
+                <div className="exercise-content">
+                  <span>
+                    #{item.exercise_order} · {item.exercise.primary_muscle}
+                  </span>
+                  <h2>{item.exercise.name}</h2>
+                  <p>{item.exercise.description}</p>
+                  <b>
+                    {item.sets} series · {item.repetitions} · descanso{' '}
+                    {item.rest_seconds}s
+                  </b>
+
+                  {item.exercise.load_type === 'external' && (
+                    <div className="load-box">
+                      <span>
+                        Recomendado:{' '}
+                        <strong>
+                          {toDisplayWeight(
+                            item.recommended_weight_kg,
+                            weightUnit,
+                          )}{' '}
+                          {weightUnit}
+                        </strong>
+                      </span>
+
+                      <label>
+                        Peso usado ({weightUnit})
+                        <input
+                          name={`weight_${item.id}`}
+                          type="number"
+                          min="0"
+                          max={weightUnit === 'kg' ? 1000 : 2205}
+                          step={weightUnit === 'kg' ? '0.5' : '0.1'}
+                          value={weights[item.id] ?? ''}
+                          onChange={(event) =>
+                            updateWeight(item.id, event.target.value)
+                          }
+                          disabled={session.completed}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="set-log">
+                    <label>
+                      Series realizadas
+                      <input
+                        name={`sets_${item.id}`}
+                        type="number"
+                        min="0"
+                        max="20"
+                        defaultValue={item.sets}
+                        disabled={session.completed}
+                      />
+                    </label>
+
+                    <label>
+                      Repeticiones
+                      <input
+                        name={`reps_${item.id}`}
+                        defaultValue={item.repetitions}
+                        disabled={session.completed}
+                      />
+                    </label>
+                  </div>
+
+                  <small>{item.exercise.instructions}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {!session.completed && (
+            <section className="feedback">
+              <h2>Finalizar y registrar</h2>
+
+              <div className="form-grid">
+                <label>
+                  Minutos reales
+                  <input
+                    name="actual_minutes"
+                    type="number"
+                    min="5"
+                    max="240"
+                    defaultValue={session.estimated_minutes}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Dificultad (1-10)
+                  <input
+                    name="difficulty"
+                    type="number"
+                    min="1"
+                    max="10"
+                    defaultValue="7"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Energía (1-10)
+                  <input
+                    name="energy_level"
+                    type="number"
+                    min="1"
+                    max="10"
+                    defaultValue="7"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Satisfacción (1-10)
+                  <input
+                    name="satisfaction"
+                    type="number"
+                    min="1"
+                    max="10"
+                    defaultValue="8"
+                    required
+                  />
+                </label>
+              </div>
+
+              <label className="check">
+                <input name="pain_reported" type="checkbox" />
+                Sentí dolor o molestia
+              </label>
+
+              <label>
+                Área de molestia
+                <input
+                  name="pain_area"
+                  placeholder="Ej. rodilla derecha"
+                />
+              </label>
+
+              <label>
+                Comentarios
+                <textarea
+                  name="comments"
+                  rows={3}
+                  placeholder="¿Qué fue fácil, difícil o incómodo?"
+                />
+              </label>
+
+              <button className="primary-action">
+                Marcar entrenamiento como completado
+              </button>
+            </section>
+          )}
+        </form>
+      </section>
+    </div>
+  )
 }
 
 function HistoryCalendar({ history }: { history: HistoryItem[] }) {
