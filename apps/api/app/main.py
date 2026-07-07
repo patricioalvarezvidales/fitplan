@@ -5,8 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, health, plans, profile
 from app.core.config import get_settings
-from app.db.base import Base
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal
 from app.services.seed import seed_catalog
 
 settings = get_settings()
@@ -14,7 +13,6 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         seed_catalog(db)
     yield
